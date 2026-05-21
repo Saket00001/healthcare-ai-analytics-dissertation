@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Healthcare Analytics Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-2.4.1.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --accent3: #f78166;
+    --accent4: #d2a8ff;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --kpi1: #1f3a5f;
+    --kpi2: #1a3a2a;
+    --kpi3: #3a1f3f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #0d1117 0%, #1a1f35 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 40px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .logo {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent4));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .header-top h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  .header-top h1 span { color: var(--accent); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .tab-btn:hover { color: var(--text); }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* PAGES */
+  .page { display: none; padding: 32px 40px; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* PAGE TITLE */
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .page-subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+
+  /* KPI GRID */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .kpi-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .kpi-card:nth-child(1)::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .kpi-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .kpi-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent4), transparent); }
+
+  .kpi-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+
+  .kpi-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 42px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .kpi-card:nth-child(1) .kpi-value { color: var(--accent); }
+  .kpi-card:nth-child(2) .kpi-value { color: var(--accent2); }
+  .kpi-card:nth-child(3) .kpi-value { color: var(--accent4); }
+
+  .kpi-desc {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* CHART CARD */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .chart-card h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .chart-card .chart-desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .plotly-graph-div { width: 100% !important; }
+
+  /* INSIGHT PILLS */
+  .insights {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .insight-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .insight-pill strong { color: var(--text); }
+
+  /* SCORE TABLE */
+  .score-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .score-table th {
+    text-align: left;
+    padding: 10px 14px;
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .score-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #1e242b;
+  }
+
+  .score-table tr:hover td { background: var(--surface2); }
+
+  .score-bar-wrap { display: flex; align-items: center; gap: 10px; }
+
+  .score-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent4));
+  }
+
+  .score-num { font-weight: 600; color: var(--text); min-width: 32px; }
+
+  /* BADGE */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .badge-blue { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .badge-green { background: rgba(63,185,80,0.15); color: var(--accent2); }
+  .badge-red { background: rgba(247,129,102,0.15); color: var(--accent3); }
+  .badge-purple { background: rgba(210,168,255,0.15); color: var(--accent4); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">🧬</div>
+    <h1>AI Healthcare <span>Analytics</span> Dashboard</h1>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('overview')">📊 Overview</button>
+    <button class="tab-btn" onclick="showTab('questions')">❓ Question Scores</button>
+    <button class="tab-btn" onclick="showTab('industry')">🏭 Industry Analysis</button>
+    <button class="tab-btn" onclick="showTab('experience')">🎓 Experience Trends</button>
+  </div>
+</div>
+
+<!-- PAGE 1: OVERVIEW -->
+<div id="page-overview" class="page active">
+  <div class="page-title">Overview</div>
+  <div class="page-subtitle">High-level summary of AI healthcare survey across 150 respondents</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Respondents</div>
+      <div class="kpi-value">150</div>
+      <div class="kpi-desc">Survey participants</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Overall Mean Score</div>
+      <div class="kpi-value">3.67</div>
+      <div class="kpi-desc">Avg. across all constructs (out of 5)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Highest Construct</div>
+      <div class="kpi-value" style="font-size:26px; padding-top:6px;">Early Diagnosis</div>
+      <div class="kpi-desc">Mean score: 3.80</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Construct Comparison</h3>
+      <div class="chart-desc">Distribution of mean scores across the 4 constructs</div>
+      <div id="chart-donut" style="height:300px;"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Construct Scores Summary</h3>
+      <div class="chart-desc">Ranked breakdown of each construct's mean performance</div>
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>Construct</th>
+            <th>Mean Score</th>
+            <th>Score Bar</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Early Diagnosis</strong></td>
+            <td class="score-num">3.80</td>
+            <td><div class="score-bar-wrap"><div class="score-bar-bg"><div class="score-bar-fill" style="width:76%"></div></div></div></td>
+            <td><span class="badge badge-green">Highest</span></td>
+          </tr>
+          <tr>
+            <td><strong>Business Performance</strong></td>
+            <td class="score-num">3.68</td>
+            <td><div class="score-bar-wrap"><div class="score-bar-bg"><div class="score-bar-fill" style="width:73.5%"></div></div></div></td>
+            <td><span class="badge badge-blue">Above Avg</span></td>
+          </tr>
+          <tr>
+            <td><strong>Technology</strong></td>
+            <td class="score-num">3.64</td>
+            <td><div class="score-bar-wrap"><div class="score-bar-bg"><div class="score-bar-fill" style="width:72.8%"></div></div></div></td>
+            <td><span class="badge badge-blue">Above Avg</span></td>
+          </tr>
+          <tr>
+            <td><strong>Challenges</strong></td>
+            <td class="score-num">3.52</td>
+            <td><div class="score-bar-wrap"><div class="score-bar-bg"><div class="score-bar-fill" style="width:70.4%"></div></div></div></td>
+            <td><span class="badge badge-red">Lowest</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="insights">
+        <div class="insight-pill">Overall mean: <strong>3.67 / 5.0</strong></div>
+        <div class="insight-pill">Score range: <strong>3.52 – 3.80</strong></div>
+        <div class="insight-pill">Respondents: <strong>150</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2: QUESTION SCORES -->
+<div id="page-questions" class="page">
+  <div class="page-title">Question Mean Scores</div>
+  <div class="page-subtitle">Mean scores for each of the 20 survey questions</div>
+
+  <div class="chart-card">
+    <h3>Mean Score by Question</h3>
+    <div class="chart-desc">All 20 questions — hover for values. Dashed line indicates overall mean (3.67).</div>
+    <div id="chart-questions" style="height:420px;"></div>
+    <div class="insights">
+      <div class="insight-pill">Highest: <strong>Q6 (3.99)</strong></div>
+      <div class="insight-pill">Lowest: <strong>Q13 (3.19)</strong></div>
+      <div class="insight-pill">Total questions: <strong>20</strong></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Question Score Detail</h3>
+    <div class="chart-desc">Tabular breakdown with visual bar for each question</div>
+    <table class="score-table">
+      <thead>
+        <tr><th>Question</th><th>Mean</th><th>Score Bar</th><th>vs. Mean</th></tr>
+      </thead>
+      <tbody id="q-table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PAGE 3: INDUSTRY -->
+<div id="page-industry" class="page">
+  <div class="page-title">Industry Analysis</div>
+  <div class="page-subtitle">Construct scores broken down by respondent industry</div>
+
+  <div class="chart-card">
+    <h3>Construct Scores by Industry</h3>
+    <div class="chart-desc">Technology, Early Diagnosis, and Business Performance scores per industry sector</div>
+    <div id="chart-industry" style="height:460px;"></div>
+    <div class="insights">
+      <div class="insight-pill">Industries surveyed: <strong>10</strong></div>
+      <div class="insight-pill">Top Tech score: <strong>Insurance (3.91)</strong></div>
+      <div class="insight-pill">Top Diagnosis: <strong>IT/Tech & Retail (3.93)</strong></div>
+      <div class="insight-pill">Top Business: <strong>Consulting (3.96)</strong></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Industry Heatmap Summary</h3>
+    <div class="chart-desc">Quick reference of scores across all industries and constructs</div>
+    <table class="score-table">
+      <thead>
+        <tr><th>Industry</th><th>Technology</th><th>Early Diagnosis</th><th>Business Perf.</th><th>Top Construct</th></tr>
+      </thead>
+      <tbody id="industry-table-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- PAGE 4: EXPERIENCE -->
+<div id="page-experience" class="page">
+  <div class="page-title">Experience Trends</div>
+  <div class="page-subtitle">How construct scores vary across respondent experience levels</div>
+
+  <div class="chart-card">
+    <h3>Construct Trends by Experience</h3>
+    <div class="chart-desc">Line chart showing score trajectories across experience brackets</div>
+    <div id="chart-experience" style="height:420px;"></div>
+    <div class="insights">
+      <div class="insight-pill">Experience groups: <strong>5</strong></div>
+      <div class="insight-pill">Best Early Diagnosis: <strong>1-3 yrs (3.97)</strong></div>
+      <div class="insight-pill">Best Tech score: <strong>5-10 yrs (3.74)</strong></div>
+      <div class="insight-pill">10+ yrs: <strong>Declining diagnosis score</strong></div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>Technology Score by Experience</h3>
+      <div class="chart-desc">Bar view of technology perception per experience group</div>
+      <div id="chart-exp-tech" style="height:280px;"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Early Diagnosis Score by Experience</h3>
+      <div class="chart-desc">Bar view of early diagnosis perception per experience group</div>
+      <div id="chart-exp-diag" style="height:280px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────────────
+const qMeans = [3.54,3.8533,3.92,3.4067,3.72,3.9933,3.5267,3.4333,3.90,3.4933,3.70,3.80,3.1867,3.5133,3.48,3.8933,3.5267,3.6733,3.9533,3.9467];
+const overallMean = 3.67;
+
+const industries = ["Consulting","Education","Finance","Government","Healthcare","IT/Technology","Insurance","Manufacturing","Pharma","Retail"];
+const indTech = [3.7,3.5294,3.3778,3.6667,3.5938,3.6204,3.9074,3.7745,3.5833,3.7593];
+const indDiag = [3.68,3.8588,3.68,3.6364,3.70,3.9333,3.7778,3.7765,3.9143,3.9333];
+const indBiz = [3.9556,3.5882,3.7556,3.2879,3.6354,3.7315,3.5926,3.8039,3.4762,3.75];
+
+const expLevels = ["< 1 year","1-3 years","3-5 years","5-10 years","10+ years"];
+const expTech = [3.5333,3.6343,3.68,3.7419,3.625];
+const expDiag = [3.9067,3.9722,3.76,3.7355,3.5643];
+const expBiz = [3.6333,3.75,3.6667,3.6452,3.6667];
+
+const darkLayout = {
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(0,0,0,0)',
+  font: { color: '#e6edf3', family: 'DM Sans, sans-serif', size: 12 },
+  margin: { t: 20, r: 20, b: 60, l: 50 },
+  xaxis: { gridcolor: '#30363d', linecolor: '#30363d', tickcolor: '#8b949e' },
+  yaxis: { gridcolor: '#21262d', linecolor: '#30363d', tickcolor: '#8b949e' },
+  legend: { bgcolor: 'rgba(0,0,0,0)', bordercolor: '#30363d', borderwidth: 1 }
+};
+
+const cfg = { responsive: true, displayModeBar: false };
+
+// ─── PAGE 1: DONUT ─────────────────────────────────────────────────────────
+Plotly.newPlot('chart-donut', [{
+  type: 'pie', hole: 0.55,
+  labels: ['Technology','Early Diagnosis','Business Performance','Challenges'],
+  values: [3.6422,3.7987,3.6756,3.52],
+  marker: { colors: ['#58a6ff','#f78166','#3fb950','#d2a8ff'] },
+  textinfo: 'label+percent',
+  textfont: { color: '#e6edf3', size: 11 },
+  hovertemplate: '%{label}: %{value:.2f}<extra></extra>'
+}], {
+  ...darkLayout,
+  margin: { t: 10, b: 10, l: 10, r: 10 },
+  showlegend: false
+}, cfg);
+
+// ─── PAGE 2: QUESTIONS BAR ─────────────────────────────────────────────────
+Plotly.newPlot('chart-questions', [{
+  type: 'bar',
+  x: qMeans.map((_,i) => `Q${i+1}`),
+  y: qMeans,
+  marker: {
+    color: qMeans.map(v => v >= 3.80 ? '#3fb950' : v <= 3.40 ? '#f78166' : '#58a6ff'),
+  },
+  hovertemplate: 'Q%{x}: %{y:.2f}<extra></extra>'
+}, {
+  type: 'scatter', mode: 'lines',
+  x: qMeans.map((_,i) => `Q${i+1}`),
+  y: Array(20).fill(overallMean),
+  line: { color: '#d2a8ff', dash: 'dash', width: 1.5 },
+  name: 'Overall Mean',
+  hoverinfo: 'skip'
+}], {
+  ...darkLayout,
+  yaxis: { ...darkLayout.yaxis, range: [2.9, 4.2], title: { text: 'Mean Score', standoff: 12, font: { color: '#8b949e' } } },
+  xaxis: { ...darkLayout.xaxis, title: { text: 'Question', standoff: 10, font: { color: '#8b949e' } } },
+  showlegend: false,
+  bargap: 0.3,
+  margin: { t: 10, r: 20, b: 50, l: 55 }
+}, cfg);
+
+// Build question table
+const tbody = document.getElementById('q-table-body');
+qMeans.forEach((v, i) => {
+  const diff = v - overallMean;
+  const badge = diff > 0.15 ? '<span class="badge badge-green">High</span>' :
+                diff < -0.15 ? '<span class="badge badge-red">Low</span>' :
+                '<span class="badge badge-blue">Avg</span>';
+  const pct = ((v / 5) * 100).toFixed(0);
+  tbody.innerHTML += `<tr>
+    <td><strong>Q${i+1}</strong></td>
+    <td class="score-num">${v.toFixed(2)}</td>
+    <td><div class="score-bar-wrap"><div class="score-bar-bg"><div class="score-bar-fill" style="width:${pct}%"></div></div></div></td>
+    <td>${badge}</td>
+  </tr>`;
+});
+
+// ─── PAGE 3: INDUSTRY ──────────────────────────────────────────────────────
+Plotly.newPlot('chart-industry', [
+  { type:'bar', name:'Technology Score', x:industries, y:indTech, marker:{color:'#58a6ff'} },
+  { type:'bar', name:'Early Diagnosis Score', x:industries, y:indDiag, marker:{color:'#f78166'} },
+  { type:'bar', name:'Business Performance Score', x:industries, y:indBiz, marker:{color:'#3fb950'} }
+], {
+  ...darkLayout,
+  barmode: 'group',
+  yaxis: { ...darkLayout.yaxis, range: [3.0, 4.2], title: { text: 'Score', standoff: 12, font: { color: '#8b949e' } } },
+  xaxis: { ...darkLayout.xaxis, title: { text: 'Industry', standoff: 10, font: { color: '#8b949e' } } },
+  legend: { ...darkLayout.legend, orientation: 'h', x: 0, y: -0.2 },
+  margin: { t: 10, r: 20, b: 100, l: 55 }
+}, cfg);
+
+// Industry table
+const itbody = document.getElementById('industry-table-body');
+industries.forEach((ind, i) => {
+  const scores = [indTech[i], indDiag[i], indBiz[i]];
+  const labels = ['Technology','Early Diagnosis','Business Perf.'];
+  const maxIdx = scores.indexOf(Math.max(...scores));
+  const badges = ['badge-blue','badge-red','badge-green'];
+  itbody.innerHTML += `<tr>
+    <td><strong>${ind}</strong></td>
+    <td>${indTech[i].toFixed(2)}</td>
+    <td>${indDiag[i].toFixed(2)}</td>
+    <td>${indBiz[i].toFixed(2)}</td>
+    <td><span class="badge ${badges[maxIdx]}">${labels[maxIdx]}</span></td>
+  </tr>`;
+});
+
+// ─── PAGE 4: EXPERIENCE ────────────────────────────────────────────────────
+Plotly.newPlot('chart-experience', [
+  { type:'scatter', mode:'lines+markers', name:'Technology Score', x:expLevels, y:expTech,
+    line:{color:'#58a6ff', width:2}, marker:{size:7, symbol:'circle'} },
+  { type:'scatter', mode:'lines+markers', name:'Early Diagnosis Score', x:expLevels, y:expDiag,
+    line:{color:'#f78166', width:2}, marker:{size:7, symbol:'circle'} },
+  { type:'scatter', mode:'lines+markers', name:'Business Performance Score', x:expLevels, y:expBiz,
+    line:{color:'#3fb950', width:2}, marker:{size:7, symbol:'circle'} }
+], {
+  ...darkLayout,
+  yaxis: { ...darkLayout.yaxis, range: [3.3, 4.1], title: { text: 'Score', standoff: 12, font: { color: '#8b949e' } } },
+  xaxis: { ...darkLayout.xaxis, title: { text: 'Experience Level', standoff: 10, font: { color: '#8b949e' } } },
+  legend: { ...darkLayout.legend, orientation: 'h', x: 0, y: -0.2 },
+  margin: { t: 10, r: 20, b: 90, l: 55 }
+}, cfg);
+
+Plotly.newPlot('chart-exp-tech', [{
+  type:'bar', x:expLevels, y:expTech,
+  marker:{ color: expTech.map((v,i) => i === expTech.indexOf(Math.max(...expTech)) ? '#d2a8ff' : '#58a6ff') },
+  hovertemplate: '%{x}: %{y:.2f}<extra></extra>'
+}], {
+  ...darkLayout,
+  yaxis: { ...darkLayout.yaxis, range:[3.4,3.85] },
+  margin: { t: 10, r: 10, b: 60, l: 50 },
+  showlegend: false, bargap: 0.35
+}, cfg);
+
+Plotly.newPlot('chart-exp-diag', [{
+  type:'bar', x:expLevels, y:expDiag,
+  marker:{ color: expDiag.map((v,i) => i === expDiag.indexOf(Math.max(...expDiag)) ? '#d2a8ff' : '#f78166') },
+  hovertemplate: '%{x}: %{y:.2f}<extra></extra>'
+}], {
+  ...darkLayout,
+  yaxis: { ...darkLayout.yaxis, range:[3.4,4.1] },
+  margin: { t: 10, r: 10, b: 60, l: 50 },
+  showlegend: false, bargap: 0.35
+}, cfg);
+
+// ─── TAB SWITCHING ─────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  // Trigger Plotly resize after tab switch
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+}
+</script>
+</body>
+</html>
